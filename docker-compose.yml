@@ -1,0 +1,60 @@
+name: canals-take-home
+
+x-app-env: &app-env
+  NODE_ENV: production
+  PORT: 3000
+  DB_HOST: db
+  DB_PORT: 5432
+  DB_USERNAME: ${DB_USERNAME:-canals}
+  DB_PASSWORD: ${DB_PASSWORD:-canals}
+  DB_DATABASE: ${DB_DATABASE:-canals_orders}
+  DB_POOL_SIZE: ${DB_POOL_SIZE:-10}
+
+services:
+  db:
+    image: postgis/postgis:17-3.5
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:-canals}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-canals}
+      POSTGRES_DB: ${DB_DATABASE:-canals_orders}
+    ports:
+      - '${DB_HOST_PORT:-5433}:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        ['CMD-SHELL', 'pg_isready -U ${DB_USERNAME:-canals} -d ${DB_DATABASE:-canals_orders}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  migrate:
+    build:
+      context: .
+      target: runtime
+    init: true
+    command: ['npm', 'run', 'db:migrate:prod']
+    environment: *app-env
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: 'no'
+
+  api:
+    build:
+      context: .
+      target: runtime
+    init: true
+    environment: *app-env
+    ports:
+      - '${PORT:-3000}:3000'
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+volumes:
+  pgdata:
