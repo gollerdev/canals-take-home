@@ -2,6 +2,7 @@ import { join } from 'node:path';
 import type { DataSourceOptions } from 'typeorm';
 
 import type { Env } from '../config/env.schema';
+import { SnakeEmbeddedNamingStrategy } from './snake-embedded.naming-strategy';
 
 export function buildDataSourceOptions(env: Env): DataSourceOptions {
   return {
@@ -13,6 +14,7 @@ export function buildDataSourceOptions(env: Env): DataSourceOptions {
     database: env.DB_DATABASE,
     synchronize: false,
     migrationsRun: false,
+    namingStrategy: new SnakeEmbeddedNamingStrategy(),
     entities: [join(__dirname, '..', '**', '*.entity{.ts,.js}')],
     migrations: [join(__dirname, 'migrations', '*{.ts,.js}')],
     migrationsTableName: 'migrations',

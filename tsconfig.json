@@ -14,10 +14,11 @@
     "sourceMap": true,
     "outDir": "./dist",
     "rootDir": ".",
-    "incremental": true,
     "skipLibCheck": true,
     "strict": true,
     "forceConsistentCasingInFileNames": true,
-    "noFallthroughCasesInSwitch": true
-  }
+    "noFallthroughCasesInSwitch": true,
+    "types": ["node", "jest"]
+  },
+  "include": ["src/**/*", "test/**/*"]
 }

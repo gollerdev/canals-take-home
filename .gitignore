@@ -24,6 +24,9 @@ coverage/
 # Tooling caches
 .eslintcache
 
+# Local notes
+docs/
+
 # Terraform
 .terraform/
 *.tfstate
