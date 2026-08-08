@@ -5,6 +5,7 @@ import {
   type QueryDeepPartialEntity,
 } from 'typeorm';
 
+import type { GeoPoint } from '../common/types/geo-point';
 import { InventoryItem } from './entities/inventory-item.entity';
 import {
   InsufficientStockError,
@@ -50,26 +51,28 @@ export class InventoryRepository {
    * Advisory: takes no locks, so the caller must still attempt the reservation.
    *
    * @param items - products and quantities the order needs
-   * @param destination - shipping coordinates to measure distance from
+   * @param destination - geocoded shipping location to measure distance from
    * @param limit - how many candidates to return
    * @returns warehouse ids ordered by distance, closest first
    */
   async findCandidateWarehouses(
     items: readonly RequestedItem[],
-    destination: { longitude: number; latitude: number },
+    destination: GeoPoint,
     limit: number,
   ): Promise<string[]> {
     if (items.length === 0) {
       return [];
     }
 
+    const [longitude, latitude] = destination.coordinates;
+
     const rows = await this.dataSource.manager.query<Array<{ id: string }>>(
       CANDIDATE_WAREHOUSES,
       [
         items.map((item) => item.productId),
         items.map((item) => item.quantity),
-        destination.longitude,
-        destination.latitude,
+        longitude,
+        latitude,
         limit,
       ],
     );

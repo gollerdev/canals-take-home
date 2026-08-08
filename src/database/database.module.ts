@@ -12,7 +12,6 @@ import { buildDataSourceOptions } from './data-source.options';
       useFactory: (config: ConfigService<Env, true>) =>
         buildDataSourceOptions({
           NODE_ENV: config.get('NODE_ENV', { infer: true }),
-          PORT: config.get('PORT', { infer: true }),
           DB_HOST: config.get('DB_HOST', { infer: true }),
           DB_PORT: config.get('DB_PORT', { infer: true }),
           DB_USERNAME: config.get('DB_USERNAME', { infer: true }),

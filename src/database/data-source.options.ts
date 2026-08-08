@@ -4,7 +4,18 @@ import type { DataSourceOptions } from 'typeorm';
 import type { Env } from '../config/env.schema';
 import { SnakeEmbeddedNamingStrategy } from './snake-embedded.naming-strategy';
 
-export function buildDataSourceOptions(env: Env): DataSourceOptions {
+type DatabaseEnv = Pick<
+  Env,
+  | 'NODE_ENV'
+  | 'DB_HOST'
+  | 'DB_PORT'
+  | 'DB_USERNAME'
+  | 'DB_PASSWORD'
+  | 'DB_DATABASE'
+  | 'DB_POOL_SIZE'
+>;
+
+export function buildDataSourceOptions(env: DatabaseEnv): DataSourceOptions {
   return {
     type: 'postgres',
     host: env.DB_HOST,

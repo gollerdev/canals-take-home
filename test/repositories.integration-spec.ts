@@ -27,6 +27,9 @@ const NEW_YORK = { longitude: -74.006, latitude: 40.7128 };
 const PHILADELPHIA = { longitude: -75.1652, latitude: 39.9526 };
 const LOS_ANGELES = { longitude: -118.2437, latitude: 34.0522 };
 
+const at = (c: { longitude: number; latitude: number }) =>
+  geoPoint(c.longitude, c.latitude);
+
 const SHIPPING: Address = {
   line1: '1 Main Street',
   line2: null,
@@ -159,7 +162,7 @@ describe('repositories', () => {
           { productId: shirt.id, quantity: 1 },
           { productId: hat.id, quantity: 1 },
         ],
-        NEW_YORK,
+        at(NEW_YORK),
         5,
       );
 
@@ -178,7 +181,7 @@ describe('repositories', () => {
 
       const candidates = await inventory.findCandidateWarehouses(
         [{ productId: shirt.id, quantity: 10 }],
-        NEW_YORK,
+        at(NEW_YORK),
         5,
       );
 
@@ -199,7 +202,7 @@ describe('repositories', () => {
 
       const candidates = await inventory.findCandidateWarehouses(
         [{ productId: shirt.id, quantity: 1 }],
-        NEW_YORK,
+        at(NEW_YORK),
         5,
       );
 
@@ -218,7 +221,7 @@ describe('repositories', () => {
 
       const candidates = await inventory.findCandidateWarehouses(
         [{ productId: shirt.id, quantity: 1 }],
-        NEW_YORK,
+        at(NEW_YORK),
         5,
       );
 
@@ -236,7 +239,7 @@ describe('repositories', () => {
 
       const candidates = await inventory.findCandidateWarehouses(
         [{ productId: shirt.id, quantity: 1 }],
-        NEW_YORK,
+        at(NEW_YORK),
         2,
       );
 
