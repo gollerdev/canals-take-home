@@ -15,6 +15,7 @@ Stack: NestJS, TypeScript, TypeORM, PostgreSQL with PostGIS.
 - [Endpoints](#endpoints)
 - [Local setup and testing](#local-setup-and-testing)
 - [Examples](#examples)
+- [Known gaps](#known-gaps)
 
 ---
 
@@ -340,3 +341,31 @@ the warehouse, so the first example still works after this.
 
 Run the first example again exactly as it is. The status changes from `201` to `200` and the `id`
 is the same order as before, not a new one.
+
+---
+
+## Known gaps
+
+The brief explicitly excluded authentication and CRUD APIs for customers, warehouses and products,
+so those are not listed here. Reference data is loaded by the seed instead.
+
+What follows is what a production deployment would need next, and does not have yet.
+
+**Idempotent replays do not compare the request body.** A key that is reused with a *different*
+payload returns the original order instead of rejecting the mismatch. The correct behaviour is to
+store a fingerprint of the request and answer `422` when it differs. Today the second request is
+silently ignored, which is the wrong answer for a client that changed the order and expected the
+change to apply.
+
+**Reservations never expire.** If the process dies between reserving stock and settling payment,
+that stock stays reserved indefinitely. The fix is a `reserved_until` column and a sweeper that
+releases expired holds. It was left out because a scheduler is a large amount of machinery for a
+take-home, but it is the first thing a real deployment would need.
+
+**Failed and successful responses have different shapes.** A declined card returns the order
+itself with `402`, while a validation error returns `{ statusCode, error, message }`. Returning the
+order is deliberate, since a failed order is a real record the client can read back later, but it
+does mean a client has to handle two shapes.
+
+**The candidate warehouse list is unbounded.** The benchmarks above are comfortable well past
+200,000 warehouses, but nothing caps how many a single pathological order could walk through.
