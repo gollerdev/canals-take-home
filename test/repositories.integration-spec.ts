@@ -5,19 +5,15 @@ import { geoPoint } from '../src/common/types/geo-point';
 import { Customer } from '../src/customers/entities/customer.entity';
 import { InventoryItem } from '../src/inventory/entities/inventory-item.entity';
 import { Warehouse } from '../src/inventory/entities/warehouse.entity';
-import {
-  InsufficientStockError,
-  ReservationNotHeldError,
-} from '../src/inventory/inventory.errors';
+import { InsufficientStockError } from '../src/inventory/exceptions/insufficient-stock.exception';
+import { ReservationNotHeldError } from '../src/inventory/exceptions/reservation-not-held.exception';
 import { InventoryRepository } from '../src/inventory/inventory.repository';
 import { OrderStatus } from '../src/orders/entities/order-status.enum';
 import { Order } from '../src/orders/entities/order.entity';
 import { OrderFailureReason } from '../src/orders/entities/order-status.enum';
-import {
-  CustomerNotFoundError,
-  IdempotencyConflictError,
-  OrderNotPendingError,
-} from '../src/orders/orders.errors';
+import { CustomerNotFoundError } from '../src/orders/exceptions/customer-not-found.exception';
+import { IdempotencyConflictError } from '../src/orders/exceptions/idempotency-conflict.exception';
+import { OrderNotPendingError } from '../src/orders/exceptions/order-not-pending.exception';
 import { OrdersRepository } from '../src/orders/orders.repository';
 import { Product } from '../src/products/entities/product.entity';
 import { ProductsRepository } from '../src/products/products.repository';
@@ -163,7 +159,6 @@ describe('repositories', () => {
           { productId: hat.id, quantity: 1 },
         ],
         at(NEW_YORK),
-        5,
       );
 
       expect(candidates).toEqual([philadelphia.id, losAngeles.id]);
@@ -182,7 +177,6 @@ describe('repositories', () => {
       const candidates = await inventory.findCandidateWarehouses(
         [{ productId: shirt.id, quantity: 10 }],
         at(NEW_YORK),
-        5,
       );
 
       expect(candidates).toEqual([philadelphia.id]);
@@ -203,7 +197,6 @@ describe('repositories', () => {
       const candidates = await inventory.findCandidateWarehouses(
         [{ productId: shirt.id, quantity: 1 }],
         at(NEW_YORK),
-        5,
       );
 
       expect(candidates).toEqual([]);
@@ -222,13 +215,12 @@ describe('repositories', () => {
       const candidates = await inventory.findCandidateWarehouses(
         [{ productId: shirt.id, quantity: 1 }],
         at(NEW_YORK),
-        5,
       );
 
       expect(candidates).toEqual([]);
     });
 
-    it('respects the candidate limit', async () => {
+    it('returns every qualifying warehouse, not just the nearest few', async () => {
       const shirt = await aProduct('SHIRT');
       const warehouses = await Promise.all([
         aWarehouse('WH-NYC', NEW_YORK),
@@ -240,10 +232,9 @@ describe('repositories', () => {
       const candidates = await inventory.findCandidateWarehouses(
         [{ productId: shirt.id, quantity: 1 }],
         at(NEW_YORK),
-        2,
       );
 
-      expect(candidates).toHaveLength(2);
+      expect(candidates).toHaveLength(3);
     });
   });
 
