@@ -239,6 +239,19 @@ If port 3000 or 5433 is already used, run
 `docker compose down -v` if you also want to delete the database so the next start seeds again from
 zero.
 
+### Insomnia collection
+
+`insomnia-collection.json` in the repository root is ready to import through **Import → From File**
+in Insomnia. Select the `Local` environment after importing.
+
+It holds 27 requests in six folders, covering warehouse selection, idempotency, every failure path,
+request validation and reading orders back. Each one describes what it should return and why, so the
+whole API can be exercised by clicking through it in order.
+
+Every id and card number is an environment variable, so pointing the collection at a different host
+only means editing `base_url`. Most requests generate a fresh `Idempotency-Key` on each run and can
+be replayed freely; the three in the idempotency folder use a fixed key on purpose.
+
 ### Tests
 
 The tests need PostgreSQL but not the API container. They create their own database and run the

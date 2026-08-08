@@ -1,0 +1,772 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-08-08T00:00:00.000Z",
+  "__export_source": "insomnia.desktop.app:v8.6.1",
+  "resources": [
+    {
+      "_id": "wrk_canals_take_home",
+      "_type": "workspace",
+      "parentId": null,
+      "name": "Canals Order Management API",
+      "description": "Local collection for the Canals take-home.\n\nStart the API with `docker compose up --build`, then run these top to bottom.\nAll ids come from the seed data, so they are valid on any clean clone.",
+      "scope": "collection"
+    },
+    {
+      "_id": "env_canals_base",
+      "_type": "environment",
+      "parentId": "wrk_canals_take_home",
+      "name": "Local",
+      "metaSortKey": 1,
+      "data": {
+        "base_url": "http://localhost:3000",
+        "customer_ana": "019fda00-0000-7000-8000-00000000c001",
+        "customer_ben": "019fda00-0000-7000-8000-00000000c002",
+        "customer_unknown": "019fda00-0000-7000-8000-0000000000ff",
+        "tshirt": "019fda00-0000-7000-8000-000000000a01",
+        "cap": "019fda00-0000-7000-8000-000000000a02",
+        "hoodie": "019fda00-0000-7000-8000-000000000a04",
+        "limited_edition": "019fda00-0000-7000-8000-000000000a12",
+        "backordered": "019fda00-0000-7000-8000-000000000a13",
+        "product_unknown": "019fda00-0000-7000-8000-0000000000ff",
+        "card_ok": "4242424242424242",
+        "card_no_funds": "4000000000009995",
+        "card_expired": "4000000000000069",
+        "card_provider_error": "4000000000000119",
+        "card_rate_limited": "4000000000009235",
+        "card_invalid": "4242424242424241"
+      }
+    },
+    {
+      "_id": "fld_health",
+      "_type": "request_group",
+      "parentId": "wrk_canals_take_home",
+      "name": "00 Health",
+      "description": "Is the API up and is the database reachable.",
+      "metaSortKey": 100,
+      "environment": {}
+    },
+    {
+      "_id": "req_health",
+      "_type": "request",
+      "parentId": "fld_health",
+      "name": "GET /health",
+      "description": "Expect 200 with status \"ok\". Returns 503 if Postgres is unreachable.",
+      "method": "GET",
+      "url": "{{ _.base_url }}/health",
+      "headers": [],
+      "body": {},
+      "metaSortKey": 200,
+      "settingEncodeUrl": true,
+      "settingSendCookies": true,
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "fld_selection",
+      "_type": "request_group",
+      "parentId": "wrk_canals_take_home",
+      "name": "01 Warehouse selection",
+      "description": "The core requirement. Same shipping address, different baskets, different warehouse.",
+      "metaSortKey": 300,
+      "environment": {}
+    },
+    {
+      "_id": "req_nearest",
+      "_type": "request",
+      "parentId": "fld_selection",
+      "name": "Nearest warehouse wins",
+      "description": "Ship to Manhattan, order only a t-shirt.\n\nExpect 201 and warehouse WH-NYC, the closest warehouse, which stocks it.",
+      "method": "POST",
+      "url": "{{ _.base_url }}/orders",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Idempotency-Key",
+          "value": "{% uuid 'v4' %}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"customerId\": \"{{ _.customer_ana }}\",\n  \"cardNumber\": \"{{ _.card_ok }}\",\n  \"shippingAddress\": {\n    \"line1\": \"350 Fifth Avenue\",\n    \"city\": \"New York\",\n    \"region\": \"NY\",\n    \"postalCode\": \"10118\",\n    \"country\": \"US\"\n  },\n  \"items\": [\n    {\n      \"productId\": \"{{ _.tshirt }}\",\n      \"quantity\": 2\n    }\n  ]\n}"
+      },
+      "metaSortKey": 400,
+      "settingEncodeUrl": true,
+      "settingSendCookies": true,
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "req_skips_nearest",
+      "_type": "request",
+      "parentId": "fld_selection",
+      "name": "Nearest is skipped when it cannot fill the order",
+      "description": "Same address, now with a navy cap added.\n\nWH-NYC is a small urban hub with no caps, so the whole order moves to WH-PHL. Expect 201 and warehouse WH-PHL.\n\nThe difference between this and the previous request is the assignment.",
+      "method": "POST",
+      "url": "{{ _.base_url }}/orders",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Idempotency-Key",
+          "value": "{% uuid 'v4' %}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"customerId\": \"{{ _.customer_ana }}\",\n  \"cardNumber\": \"{{ _.card_ok }}\",\n  \"shippingAddress\": {\n    \"line1\": \"350 Fifth Avenue\",\n    \"city\": \"New York\",\n    \"region\": \"NY\",\n    \"postalCode\": \"10118\",\n    \"country\": \"US\"\n  },\n  \"items\": [\n    {\n      \"productId\": \"{{ _.tshirt }}\",\n      \"quantity\": 2\n    },\n    {\n      \"productId\": \"{{ _.cap }}\",\n      \"quantity\": 1\n    }\n  ]\n}"
+      },
+      "metaSortKey": 500,
+      "settingEncodeUrl": true,
+      "settingSendCookies": true,
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "req_west_coast",
+      "_type": "request",
+      "parentId": "fld_selection",
+      "name": "A different address picks a different warehouse",
+      "description": "Same basket, shipped to Los Angeles instead.\n\nExpect 201 and warehouse WH-LAX.",
+      "method": "POST",
+      "url": "{{ _.base_url }}/orders",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Idempotency-Key",
+          "value": "{% uuid 'v4' %}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"customerId\": \"{{ _.customer_ben }}\",\n  \"cardNumber\": \"{{ _.card_ok }}\",\n  \"shippingAddress\": {\n    \"line1\": \"555 West 5th Street\",\n    \"city\": \"Los Angeles\",\n    \"region\": \"CA\",\n    \"postalCode\": \"90013\",\n    \"country\": \"US\"\n  },\n  \"items\": [\n    {\n      \"productId\": \"{{ _.tshirt }}\",\n      \"quantity\": 2\n    },\n    {\n      \"productId\": \"{{ _.cap }}\",\n      \"quantity\": 1\n    }\n  ]\n}"
+      },
+      "metaSortKey": 600,
+      "settingEncodeUrl": true,
+      "settingSendCookies": true,
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "req_inactive_warehouse",
+      "_type": "request",
+      "parentId": "fld_selection",
+      "name": "A decommissioned warehouse is never chosen",
+      "description": "WH-RNO is inactive but stocked with 500 of everything, including the limited edition tee. Only WH-NYC has that product, and only 1 unit.\n\nOrdering 2 must fail rather than ship from Reno. Expect 409 no_warehouse_available.",
+      "method": "POST",
+      "url": "{{ _.base_url }}/orders",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Idempotency-Key",
+          "value": "{% uuid 'v4' %}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"customerId\": \"{{ _.customer_ana }}\",\n  \"cardNumber\": \"{{ _.card_ok }}\",\n  \"shippingAddress\": {\n    \"line1\": \"350 Fifth Avenue\",\n    \"city\": \"New York\",\n    \"region\": \"NY\",\n    \"postalCode\": \"10118\",\n    \"country\": \"US\"\n  },\n  \"items\": [\n    {\n      \"productId\": \"{{ _.limited_edition }}\",\n      \"quantity\": 2\n    }\n  ]\n}"
+      },
+      "metaSortKey": 700,
+      "settingEncodeUrl": true,
+      "settingSendCookies": true,
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "fld_idempotency",
+      "_type": "request_group",
+      "parentId": "wrk_canals_take_home",
+      "name": "02 Idempotency",
+      "description": "Retry safety. These three use a fixed key on purpose, so run them in order.",
+      "metaSortKey": 800,
+      "environment": {}
+    },
+    {
+      "_id": "req_idem_first",
+      "_type": "request",
+      "parentId": "fld_idempotency",
+      "name": "1. Create with a fixed key",
+      "description": "Uses the fixed key \"insomnia-demo-1\".\n\nExpect 201 the first time. Note the id in the response.",
+      "method": "POST",
+      "url": "{{ _.base_url }}/orders",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Idempotency-Key",
+          "value": "insomnia-demo-1"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"customerId\": \"{{ _.customer_ana }}\",\n  \"cardNumber\": \"{{ _.card_ok }}\",\n  \"shippingAddress\": {\n    \"line1\": \"350 Fifth Avenue\",\n    \"city\": \"New York\",\n    \"region\": \"NY\",\n    \"postalCode\": \"10118\",\n    \"country\": \"US\"\n  },\n  \"items\": [\n    {\n      \"productId\": \"{{ _.tshirt }}\",\n      \"quantity\": 2\n    }\n  ]\n}"
+      },
+      "metaSortKey": 900,
+      "settingEncodeUrl": true,
+      "settingSendCookies": true,
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "req_idem_replay",
+      "_type": "request",
+      "parentId": "fld_idempotency",
+      "name": "2. Replay the same key, same body",
+      "description": "Identical request, same key.\n\nExpect 200 rather than 201, the same order id as before, and no second charge.",
+      "method": "POST",
+      "url": "{{ _.base_url }}/orders",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Idempotency-Key",
+          "value": "insomnia-demo-1"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"customerId\": \"{{ _.customer_ana }}\",\n  \"cardNumber\": \"{{ _.card_ok }}\",\n  \"shippingAddress\": {\n    \"line1\": \"350 Fifth Avenue\",\n    \"city\": \"New York\",\n    \"region\": \"NY\",\n    \"postalCode\": \"10118\",\n    \"country\": \"US\"\n  },\n  \"items\": [\n    {\n      \"productId\": \"{{ _.tshirt }}\",\n      \"quantity\": 2\n    }\n  ]\n}"
+      },
+      "metaSortKey": 1000,
+      "settingEncodeUrl": true,
+      "settingSendCookies": true,
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "req_idem_mismatch",
+      "_type": "request",
+      "parentId": "fld_idempotency",
+      "name": "3. Same key, DIFFERENT body (known gap)",
+      "description": "Same key, but quantity 5 instead of 2.\n\nCorrect behaviour would be 422. This API returns 200 with the ORIGINAL order (quantity 2), because replays do not compare the request body.\n\nThis is documented in the README under Known gaps.",
+      "method": "POST",
+      "url": "{{ _.base_url }}/orders",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Idempotency-Key",
+          "value": "insomnia-demo-1"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"customerId\": \"{{ _.customer_ana }}\",\n  \"cardNumber\": \"{{ _.card_ok }}\",\n  \"shippingAddress\": {\n    \"line1\": \"350 Fifth Avenue\",\n    \"city\": \"New York\",\n    \"region\": \"NY\",\n    \"postalCode\": \"10118\",\n    \"country\": \"US\"\n  },\n  \"items\": [\n    {\n      \"productId\": \"{{ _.tshirt }}\",\n      \"quantity\": 5\n    }\n  ]\n}"
+      },
+      "metaSortKey": 1100,
+      "settingEncodeUrl": true,
+      "settingSendCookies": true,
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "fld_failures",
+      "_type": "request_group",
+      "parentId": "wrk_canals_take_home",
+      "name": "03 Failure paths",
+      "description": "Every failure is a real status code with a reason, never a 500.",
+      "metaSortKey": 1200,
+      "environment": {}
+    },
+    {
+      "_id": "req_declined",
+      "_type": "request",
+      "parentId": "fld_failures",
+      "name": "Card declined - insufficient funds",
+      "description": "Expect 402, status \"failed\", failureReason \"payment_declined\".\n\nThe reserved stock is released, so the earlier requests still work after this one.",
+      "method": "POST",
+      "url": "{{ _.base_url }}/orders",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Idempotency-Key",
+          "value": "{% uuid 'v4' %}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"customerId\": \"{{ _.customer_ana }}\",\n  \"cardNumber\": \"{{ _.card_no_funds }}\",\n  \"shippingAddress\": {\n    \"line1\": \"350 Fifth Avenue\",\n    \"city\": \"New York\",\n    \"region\": \"NY\",\n    \"postalCode\": \"10118\",\n    \"country\": \"US\"\n  },\n  \"items\": [\n    {\n      \"productId\": \"{{ _.tshirt }}\",\n      \"quantity\": 1\n    }\n  ]\n}"
+      },
+      "metaSortKey": 1300,
+      "settingEncodeUrl": true,
+      "settingSendCookies": true,
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "req_expired",
+      "_type": "request",
+      "parentId": "fld_failures",
+      "name": "Card declined - expired card",
+      "description": "A different decline code from the payment mock. Expect 402.",
+      "method": "POST",
+      "url": "{{ _.base_url }}/orders",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Idempotency-Key",
+          "value": "{% uuid 'v4' %}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"customerId\": \"{{ _.customer_ana }}\",\n  \"cardNumber\": \"{{ _.card_expired }}\",\n  \"shippingAddress\": {\n    \"line1\": \"350 Fifth Avenue\",\n    \"city\": \"New York\",\n    \"region\": \"NY\",\n    \"postalCode\": \"10118\",\n    \"country\": \"US\"\n  },\n  \"items\": [\n    {\n      \"productId\": \"{{ _.tshirt }}\",\n      \"quantity\": 1\n    }\n  ]\n}"
+      },
+      "metaSortKey": 1400,
+      "settingEncodeUrl": true,
+      "settingSendCookies": true,
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "req_backordered",
+      "_type": "request",
+      "parentId": "fld_failures",
+      "name": "No warehouse stocks the product",
+      "description": "BACKORDER-01 exists in the catalog but has no stock anywhere.\n\nExpect 409 no_warehouse_available. No card is charged.",
+      "method": "POST",
+      "url": "{{ _.base_url }}/orders",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Idempotency-Key",
+          "value": "{% uuid 'v4' %}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"customerId\": \"{{ _.customer_ana }}\",\n  \"cardNumber\": \"{{ _.card_ok }}\",\n  \"shippingAddress\": {\n    \"line1\": \"350 Fifth Avenue\",\n    \"city\": \"New York\",\n    \"region\": \"NY\",\n    \"postalCode\": \"10118\",\n    \"country\": \"US\"\n  },\n  \"items\": [\n    {\n      \"productId\": \"{{ _.backordered }}\",\n      \"quantity\": 1\n    }\n  ]\n}"
+      },
+      "metaSortKey": 1500,
+      "settingEncodeUrl": true,
+      "settingSendCookies": true,
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "req_provider_error",
+      "_type": "request",
+      "parentId": "fld_failures",
+      "name": "Payment provider is down",
+      "description": "This test card makes the gateway raise a 500.\n\nExpect 503. The order stays pending and its stock stays reserved for reconciliation, which is deliberate: the charge outcome is unknown.",
+      "method": "POST",
+      "url": "{{ _.base_url }}/orders",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Idempotency-Key",
+          "value": "{% uuid 'v4' %}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"customerId\": \"{{ _.customer_ana }}\",\n  \"cardNumber\": \"{{ _.card_provider_error }}\",\n  \"shippingAddress\": {\n    \"line1\": \"350 Fifth Avenue\",\n    \"city\": \"New York\",\n    \"region\": \"NY\",\n    \"postalCode\": \"10118\",\n    \"country\": \"US\"\n  },\n  \"items\": [\n    {\n      \"productId\": \"{{ _.tshirt }}\",\n      \"quantity\": 1\n    }\n  ]\n}"
+      },
+      "metaSortKey": 1600,
+      "settingEncodeUrl": true,
+      "settingSendCookies": true,
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "req_rate_limited",
+      "_type": "request",
+      "parentId": "fld_failures",
+      "name": "Payment provider rate limits",
+      "description": "Expect 503.",
+      "method": "POST",
+      "url": "{{ _.base_url }}/orders",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Idempotency-Key",
+          "value": "{% uuid 'v4' %}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"customerId\": \"{{ _.customer_ana }}\",\n  \"cardNumber\": \"{{ _.card_rate_limited }}\",\n  \"shippingAddress\": {\n    \"line1\": \"350 Fifth Avenue\",\n    \"city\": \"New York\",\n    \"region\": \"NY\",\n    \"postalCode\": \"10118\",\n    \"country\": \"US\"\n  },\n  \"items\": [\n    {\n      \"productId\": \"{{ _.tshirt }}\",\n      \"quantity\": 1\n    }\n  ]\n}"
+      },
+      "metaSortKey": 1700,
+      "settingEncodeUrl": true,
+      "settingSendCookies": true,
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "req_bad_card",
+      "_type": "request",
+      "parentId": "fld_failures",
+      "name": "Card number fails the Luhn check",
+      "description": "The gateway rejects the request itself rather than declining it.\n\nExpect 400.",
+      "method": "POST",
+      "url": "{{ _.base_url }}/orders",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Idempotency-Key",
+          "value": "{% uuid 'v4' %}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"customerId\": \"{{ _.customer_ana }}\",\n  \"cardNumber\": \"{{ _.card_invalid }}\",\n  \"shippingAddress\": {\n    \"line1\": \"350 Fifth Avenue\",\n    \"city\": \"New York\",\n    \"region\": \"NY\",\n    \"postalCode\": \"10118\",\n    \"country\": \"US\"\n  },\n  \"items\": [\n    {\n      \"productId\": \"{{ _.tshirt }}\",\n      \"quantity\": 1\n    }\n  ]\n}"
+      },
+      "metaSortKey": 1800,
+      "settingEncodeUrl": true,
+      "settingSendCookies": true,
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "req_geo_not_found",
+      "_type": "request",
+      "parentId": "fld_failures",
+      "name": "Address cannot be geocoded",
+      "description": "The geocoding mock treats the city \"Nowhere\" as unresolvable.\n\nExpect 400.",
+      "method": "POST",
+      "url": "{{ _.base_url }}/orders",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Idempotency-Key",
+          "value": "{% uuid 'v4' %}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"customerId\": \"{{ _.customer_ana }}\",\n  \"cardNumber\": \"{{ _.card_ok }}\",\n  \"shippingAddress\": {\n    \"line1\": \"350 Fifth Avenue\",\n    \"city\": \"Nowhere\",\n    \"region\": \"NY\",\n    \"postalCode\": \"10118\",\n    \"country\": \"US\"\n  },\n  \"items\": [\n    {\n      \"productId\": \"{{ _.tshirt }}\",\n      \"quantity\": 1\n    }\n  ]\n}"
+      },
+      "metaSortKey": 1900,
+      "settingEncodeUrl": true,
+      "settingSendCookies": true,
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "req_geo_timeout",
+      "_type": "request",
+      "parentId": "fld_failures",
+      "name": "Geocoding provider is unavailable",
+      "description": "The city \"Timeout\" makes the geocoding mock fail.\n\nExpect 503.",
+      "method": "POST",
+      "url": "{{ _.base_url }}/orders",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Idempotency-Key",
+          "value": "{% uuid 'v4' %}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"customerId\": \"{{ _.customer_ana }}\",\n  \"cardNumber\": \"{{ _.card_ok }}\",\n  \"shippingAddress\": {\n    \"line1\": \"350 Fifth Avenue\",\n    \"city\": \"Timeout\",\n    \"region\": \"NY\",\n    \"postalCode\": \"10118\",\n    \"country\": \"US\"\n  },\n  \"items\": [\n    {\n      \"productId\": \"{{ _.tshirt }}\",\n      \"quantity\": 1\n    }\n  ]\n}"
+      },
+      "metaSortKey": 2000,
+      "settingEncodeUrl": true,
+      "settingSendCookies": true,
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "fld_validation",
+      "_type": "request_group",
+      "parentId": "wrk_canals_take_home",
+      "name": "04 Request validation",
+      "description": "The ValidationPipe rejects malformed input before it reaches any domain code, and reports every problem at once.",
+      "metaSortKey": 2100,
+      "environment": {}
+    },
+    {
+      "_id": "req_missing_key",
+      "_type": "request",
+      "parentId": "fld_validation",
+      "name": "Missing Idempotency-Key header",
+      "description": "The header is required. Expect 400.",
+      "method": "POST",
+      "url": "{{ _.base_url }}/orders",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"customerId\": \"{{ _.customer_ana }}\",\n  \"cardNumber\": \"{{ _.card_ok }}\",\n  \"shippingAddress\": {\n    \"line1\": \"350 Fifth Avenue\",\n    \"city\": \"New York\",\n    \"region\": \"NY\",\n    \"postalCode\": \"10118\",\n    \"country\": \"US\"\n  },\n  \"items\": [\n    {\n      \"productId\": \"{{ _.tshirt }}\",\n      \"quantity\": 1\n    }\n  ]\n}"
+      },
+      "metaSortKey": 2200,
+      "settingEncodeUrl": true,
+      "settingSendCookies": true,
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "req_malformed",
+      "_type": "request",
+      "parentId": "fld_validation",
+      "name": "Malformed body",
+      "description": "A bad customerId and an empty basket, with two required fields absent.\n\nExpect 400 listing every problem: customerId, cardNumber, shippingAddress and items.",
+      "method": "POST",
+      "url": "{{ _.base_url }}/orders",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Idempotency-Key",
+          "value": "{% uuid 'v4' %}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"customerId\": \"not-a-uuid\",\n  \"items\": []\n}"
+      },
+      "metaSortKey": 2300,
+      "settingEncodeUrl": true,
+      "settingSendCookies": true,
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "req_unknown_field",
+      "_type": "request",
+      "parentId": "fld_validation",
+      "name": "Unknown field is rejected",
+      "description": "The pipe runs with forbidNonWhitelisted, so unexpected fields are an error rather than being silently dropped.\n\nExpect 400 naming \"sneaky\".",
+      "method": "POST",
+      "url": "{{ _.base_url }}/orders",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Idempotency-Key",
+          "value": "{% uuid 'v4' %}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"customerId\": \"{{ _.customer_ana }}\",\n  \"cardNumber\": \"{{ _.card_ok }}\",\n  \"shippingAddress\": {\n    \"line1\": \"350 Fifth Avenue\",\n    \"city\": \"New York\",\n    \"region\": \"NY\",\n    \"postalCode\": \"10118\",\n    \"country\": \"US\"\n  },\n  \"items\": [\n    {\n      \"productId\": \"{{ _.tshirt }}\",\n      \"quantity\": 1\n    }\n  ],\n  \"sneaky\": true\n}"
+      },
+      "metaSortKey": 2400,
+      "settingEncodeUrl": true,
+      "settingSendCookies": true,
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "req_bad_country",
+      "_type": "request",
+      "parentId": "fld_validation",
+      "name": "Country must be ISO 3166-1 alpha-2",
+      "description": "Three letters instead of two. Expect 400.\n\nA lowercase \"us\" would be accepted and normalised to \"US\".",
+      "method": "POST",
+      "url": "{{ _.base_url }}/orders",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Idempotency-Key",
+          "value": "{% uuid 'v4' %}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"customerId\": \"{{ _.customer_ana }}\",\n  \"cardNumber\": \"{{ _.card_ok }}\",\n  \"shippingAddress\": {\n    \"line1\": \"350 Fifth Avenue\",\n    \"city\": \"New York\",\n    \"region\": \"NY\",\n    \"postalCode\": \"10118\",\n    \"country\": \"USA\"\n  },\n  \"items\": [\n    {\n      \"productId\": \"{{ _.tshirt }}\",\n      \"quantity\": 1\n    }\n  ]\n}"
+      },
+      "metaSortKey": 2500,
+      "settingEncodeUrl": true,
+      "settingSendCookies": true,
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "req_zero_quantity",
+      "_type": "request",
+      "parentId": "fld_validation",
+      "name": "Quantity below the minimum",
+      "description": "Quantity must be an integer from 1 to 1000. Expect 400.",
+      "method": "POST",
+      "url": "{{ _.base_url }}/orders",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Idempotency-Key",
+          "value": "{% uuid 'v4' %}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"customerId\": \"{{ _.customer_ana }}\",\n  \"cardNumber\": \"{{ _.card_ok }}\",\n  \"shippingAddress\": {\n    \"line1\": \"350 Fifth Avenue\",\n    \"city\": \"New York\",\n    \"region\": \"NY\",\n    \"postalCode\": \"10118\",\n    \"country\": \"US\"\n  },\n  \"items\": [\n    {\n      \"productId\": \"{{ _.tshirt }}\",\n      \"quantity\": 0\n    }\n  ]\n}"
+      },
+      "metaSortKey": 2600,
+      "settingEncodeUrl": true,
+      "settingSendCookies": true,
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "req_duplicate_product",
+      "_type": "request",
+      "parentId": "fld_validation",
+      "name": "The same product twice",
+      "description": "Duplicate lines are rejected rather than merged. Expect 400.",
+      "method": "POST",
+      "url": "{{ _.base_url }}/orders",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Idempotency-Key",
+          "value": "{% uuid 'v4' %}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"customerId\": \"{{ _.customer_ana }}\",\n  \"cardNumber\": \"{{ _.card_ok }}\",\n  \"shippingAddress\": {\n    \"line1\": \"350 Fifth Avenue\",\n    \"city\": \"New York\",\n    \"region\": \"NY\",\n    \"postalCode\": \"10118\",\n    \"country\": \"US\"\n  },\n  \"items\": [\n    {\n      \"productId\": \"{{ _.tshirt }}\",\n      \"quantity\": 1\n    },\n    {\n      \"productId\": \"{{ _.tshirt }}\",\n      \"quantity\": 2\n    }\n  ]\n}"
+      },
+      "metaSortKey": 2700,
+      "settingEncodeUrl": true,
+      "settingSendCookies": true,
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "req_unknown_product",
+      "_type": "request",
+      "parentId": "fld_validation",
+      "name": "Unknown product",
+      "description": "A well-formed uuid that matches no product.\n\nExpect 400 with error \"UnknownProductsError\", not a 500.",
+      "method": "POST",
+      "url": "{{ _.base_url }}/orders",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Idempotency-Key",
+          "value": "{% uuid 'v4' %}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"customerId\": \"{{ _.customer_ana }}\",\n  \"cardNumber\": \"{{ _.card_ok }}\",\n  \"shippingAddress\": {\n    \"line1\": \"350 Fifth Avenue\",\n    \"city\": \"New York\",\n    \"region\": \"NY\",\n    \"postalCode\": \"10118\",\n    \"country\": \"US\"\n  },\n  \"items\": [\n    {\n      \"productId\": \"{{ _.product_unknown }}\",\n      \"quantity\": 1\n    }\n  ]\n}"
+      },
+      "metaSortKey": 2800,
+      "settingEncodeUrl": true,
+      "settingSendCookies": true,
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "req_unknown_customer",
+      "_type": "request",
+      "parentId": "fld_validation",
+      "name": "Unknown customer",
+      "description": "Expect 404.",
+      "method": "POST",
+      "url": "{{ _.base_url }}/orders",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Idempotency-Key",
+          "value": "{% uuid 'v4' %}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"customerId\": \"{{ _.customer_unknown }}\",\n  \"cardNumber\": \"{{ _.card_ok }}\",\n  \"shippingAddress\": {\n    \"line1\": \"350 Fifth Avenue\",\n    \"city\": \"New York\",\n    \"region\": \"NY\",\n    \"postalCode\": \"10118\",\n    \"country\": \"US\"\n  },\n  \"items\": [\n    {\n      \"productId\": \"{{ _.tshirt }}\",\n      \"quantity\": 1\n    }\n  ]\n}"
+      },
+      "metaSortKey": 2900,
+      "settingEncodeUrl": true,
+      "settingSendCookies": true,
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "fld_read",
+      "_type": "request_group",
+      "parentId": "wrk_canals_take_home",
+      "name": "05 Reading orders",
+      "description": "GET /orders/:id.",
+      "metaSortKey": 3000,
+      "environment": {}
+    },
+    {
+      "_id": "req_read_created",
+      "_type": "request",
+      "parentId": "fld_read",
+      "name": "Read back the order created above",
+      "description": "Pulls the id straight out of the \"Nearest warehouse wins\" response, so run that one first.\n\nExpect 200 and an identical body.",
+      "method": "GET",
+      "url": "{{ _.base_url }}/orders/{% response 'body', 'req_nearest', '$.id', 'never', 60 %}",
+      "headers": [],
+      "body": {},
+      "metaSortKey": 3100,
+      "settingEncodeUrl": true,
+      "settingSendCookies": true,
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "req_read_unknown",
+      "_type": "request",
+      "parentId": "fld_read",
+      "name": "Unknown order id",
+      "description": "A valid uuid that matches no order. Expect 404.",
+      "method": "GET",
+      "url": "{{ _.base_url }}/orders/019fda00-0000-7000-8000-0000000000ff",
+      "headers": [],
+      "body": {},
+      "metaSortKey": 3200,
+      "settingEncodeUrl": true,
+      "settingSendCookies": true,
+      "settingStoreCookies": true
+    },
+    {
+      "_id": "req_read_malformed",
+      "_type": "request",
+      "parentId": "fld_read",
+      "name": "Malformed order id",
+      "description": "Not a uuid at all. The ParseUUIDPipe rejects it. Expect 400.",
+      "method": "GET",
+      "url": "{{ _.base_url }}/orders/nonsense",
+      "headers": [],
+      "body": {},
+      "metaSortKey": 3300,
+      "settingEncodeUrl": true,
+      "settingSendCookies": true,
+      "settingStoreCookies": true
+    }
+  ]
+}
