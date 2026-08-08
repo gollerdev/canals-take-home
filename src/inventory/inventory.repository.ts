@@ -6,16 +6,10 @@ import {
 } from 'typeorm';
 
 import type { GeoPoint } from '../common/types/geo-point';
+import type { RequestedItemInputDto } from './dto/requested-item-input.dto';
 import { InventoryItem } from './entities/inventory-item.entity';
-import {
-  InsufficientStockError,
-  ReservationNotHeldError,
-} from './inventory.errors';
-
-export interface RequestedItem {
-  productId: string;
-  quantity: number;
-}
+import { InsufficientStockError } from './exceptions/insufficient-stock.exception';
+import { ReservationNotHeldError } from './exceptions/reservation-not-held.exception';
 
 const CANDIDATE_WAREHOUSES = `
   SELECT w.id
@@ -31,13 +25,14 @@ const CANDIDATE_WAREHOUSES = `
          OR i.quantity_on_hand - i.quantity_reserved < r.quantity
     )
   ORDER BY w.location <-> ST_SetSRID(ST_MakePoint($3, $4), 4326)::geography
-  LIMIT $5
 `;
 
 const ENOUGH_AVAILABLE = 'quantity_on_hand - quantity_reserved >= :quantity';
 const ENOUGH_RESERVED = 'quantity_reserved >= :quantity';
 
-function inLockOrder(items: readonly RequestedItem[]): RequestedItem[] {
+function inLockOrder(
+  items: readonly RequestedItemInputDto[],
+): RequestedItemInputDto[] {
   return [...items].sort((a, b) => a.productId.localeCompare(b.productId));
 }
 
@@ -46,19 +41,17 @@ export class InventoryRepository {
   constructor(private readonly dataSource: DataSource) {}
 
   /**
-   * Finds warehouses that can fill the entire order, nearest first.
+   * Finds every warehouse that can fill the entire order, nearest first.
    *
    * Advisory: takes no locks, so the caller must still attempt the reservation.
    *
    * @param items - products and quantities the order needs
    * @param destination - geocoded shipping location to measure distance from
-   * @param limit - how many candidates to return
    * @returns warehouse ids ordered by distance, closest first
    */
   async findCandidateWarehouses(
-    items: readonly RequestedItem[],
+    items: readonly RequestedItemInputDto[],
     destination: GeoPoint,
-    limit: number,
   ): Promise<string[]> {
     if (items.length === 0) {
       return [];
@@ -73,7 +66,6 @@ export class InventoryRepository {
         items.map((item) => item.quantity),
         longitude,
         latitude,
-        limit,
       ],
     );
 
@@ -92,7 +84,7 @@ export class InventoryRepository {
    */
   async reserve(
     warehouseId: string,
-    items: readonly RequestedItem[],
+    items: readonly RequestedItemInputDto[],
     manager: EntityManager,
   ): Promise<void> {
     for (const item of inLockOrder(items)) {
@@ -120,7 +112,7 @@ export class InventoryRepository {
    */
   async commitReservation(
     warehouseId: string,
-    items: readonly RequestedItem[],
+    items: readonly RequestedItemInputDto[],
     manager: EntityManager,
   ): Promise<void> {
     for (const item of inLockOrder(items)) {
@@ -151,7 +143,7 @@ export class InventoryRepository {
    */
   async releaseReservation(
     warehouseId: string,
-    items: readonly RequestedItem[],
+    items: readonly RequestedItemInputDto[],
     manager: EntityManager,
   ): Promise<void> {
     for (const item of inLockOrder(items)) {
@@ -183,7 +175,7 @@ export class InventoryRepository {
   private async adjust(
     manager: EntityManager,
     warehouseId: string,
-    item: RequestedItem,
+    item: RequestedItemInputDto,
     set: QueryDeepPartialEntity<InventoryItem>,
     guard: string,
   ): Promise<boolean> {

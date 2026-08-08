@@ -5,31 +5,13 @@ import {
   isForeignKeyViolation,
   isUniqueViolation,
 } from '../common/database/pg-error';
-import { Address } from '../common/entities/address.embedded';
-import type { GeoPoint } from '../common/types/geo-point';
+import type { InsertOrderInputDto } from './dto/insert-order-input.dto';
 import { OrderItem } from './entities/order-item.entity';
 import { OrderFailureReason, OrderStatus } from './entities/order-status.enum';
 import { Order } from './entities/order.entity';
-import {
-  CustomerNotFoundError,
-  IdempotencyConflictError,
-  OrderNotPendingError,
-} from './orders.errors';
-
-export interface NewOrderLine {
-  productId: string;
-  quantity: number;
-  unitPriceCents: number;
-}
-
-export interface NewOrder {
-  customerId: string;
-  idempotencyKey: string;
-  shippingAddress: Address;
-  shippingLocation: GeoPoint;
-  totalCents: number;
-  lines: readonly NewOrderLine[];
-}
+import { CustomerNotFoundError } from './exceptions/customer-not-found.exception';
+import { IdempotencyConflictError } from './exceptions/idempotency-conflict.exception';
+import { OrderNotPendingError } from './exceptions/order-not-pending.exception';
 
 @Injectable()
 export class OrdersRepository {
@@ -38,15 +20,12 @@ export class OrdersRepository {
   /**
    * Records the order as pending, claiming its idempotency key.
    *
-   * The first write of the flow, before any side effect, so the unique index
-   * decides concurrent retries rather than application code.
-   *
    * @param input - customer, address, geocoded location, total and lines
    * @returns the persisted order
    * @throws IdempotencyConflictError when the customer already used the key
    * @throws CustomerNotFoundError when the customer does not exist
    */
-  async insertPending(input: NewOrder): Promise<Order> {
+  async insertPending(input: InsertOrderInputDto): Promise<Order> {
     const manager = this.dataSource.manager;
     const order = manager.create(Order, {
       customerId: input.customerId,
@@ -113,10 +92,24 @@ export class OrdersRepository {
   }
 
   /**
-   * Settles the order as confirmed.
+   * Records the payment reference as soon as the card is charged.
    *
-   * Only a pending order can be settled, so a replay or a wrong id fails
-   * loudly instead of deducting stock against nothing.
+   * @param orderId - order that was charged
+   * @param paymentReference - reference returned by the payment provider
+   */
+  async recordPaymentReference(
+    orderId: string,
+    paymentReference: string,
+  ): Promise<void> {
+    await this.dataSource.manager.update(
+      Order,
+      { id: orderId },
+      { paymentReference },
+    );
+  }
+
+  /**
+   * Settles the order as confirmed.
    *
    * @param orderId - order to confirm
    * @param warehouseId - warehouse the order will ship from
