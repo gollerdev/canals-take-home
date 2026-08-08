@@ -8,8 +8,26 @@ Stack: NestJS, TypeScript, TypeORM, PostgreSQL with PostGIS.
 
 ---
 
+## Try it live
+
+The API is deployed.
+
+| | |
+| --- | --- |
+| **Swagger UI** | <http://34.192.118.177:3000/docs> |
+| **OpenAPI document** | <http://34.192.118.177:3000/docs/json> |
+| **Health** | <http://34.192.118.177:3000/health> |
+
+Open the Swagger UI, expand `POST /orders` and press **Try it out**. 
+
+The one thing to change between attempts is the `Idempotency-Key` header. Reusing a key returns the
+first order again with `200` instead of placing a second one, which is exactly what it is for.
+
+---
+
 ## Contents
 
+- [Try it live](#try-it-live)
 - [Philosophy](#philosophy)
 - [Architecture and tech choices](#architecture-and-tech-choices)
 - [Endpoints](#endpoints)
