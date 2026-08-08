@@ -8,5 +8,6 @@
   },
   "globalSetup": "<rootDir>/test/setup/global-setup.ts",
   "testTimeout": 30000,
-  "maxWorkers": 1
+  "maxWorkers": 1,
+  "setupFiles": ["<rootDir>/test/setup/test-env.ts"]
 }
