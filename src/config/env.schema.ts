@@ -9,6 +9,8 @@ export interface Env {
   DB_PASSWORD: string;
   DB_DATABASE: string;
   DB_POOL_SIZE: number;
+  PAYMENT_MOCK_LATENCY_MS: number;
+  GEOCODING_MOCK_LATENCY_MS: number;
 }
 
 const schema = Joi.object<Env>({
@@ -22,6 +24,8 @@ const schema = Joi.object<Env>({
   DB_PASSWORD: Joi.string().min(1).required(),
   DB_DATABASE: Joi.string().min(1).required(),
   DB_POOL_SIZE: Joi.number().integer().min(1).default(10),
+  PAYMENT_MOCK_LATENCY_MS: Joi.number().integer().min(0).default(250),
+  GEOCODING_MOCK_LATENCY_MS: Joi.number().integer().min(0).default(120),
 }).unknown(true);
 
 export function validateEnv(source: Record<string, unknown>): Env {
