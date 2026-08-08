@@ -54,11 +54,10 @@ response carries a reason the client can act on. Failed orders are still persist
 `failureReason` instead of being discarded. Nothing a client can trigger on purpose returns a `500`.
 
 **The database decisions were made for scale, not for the demo.** With nine warehouses almost any
-approach works; the goal was one that still holds at thousands.
+approach works.
 
 Public estimates put the number of warehouse and storage locations in the United States, Canada and
-Mexico at somewhere between 150,000 and 210,000. A company like Canals would never index all of
-them, but even a small share of that market is tens of thousands of rows, and this query runs on
+Mexico at somewhere between 150,000 and 210,000. Even a small share of that market is tens of thousands of rows, and this query runs on
 every order. The benchmarks below therefore use 200,000 warehouses rather than the nine in the demo.
 
 There were three options.
@@ -141,6 +140,9 @@ fast as the number of warehouses grows.
 **class-validator.** Validation of the HTTP body lives in the DTO, next to the type, so the rules
 and the shape cannot drift apart.
 
+**Swagger / OpenAPI.** The same DTO classes carry the documentation, so `/docs` describes the
+contract the `ValidationPipe` actually enforces.
+
 **Jest against a real database.** The integration tests do not mock Postgres. Concurrency and
 constraints, both central to this project, are precisely what a mock would get wrong.
 
@@ -172,7 +174,7 @@ src/
   payments/       PaymentGateway interface and the mock implementation
   geocoding/      GeocodingProvider interface and the mock implementation
   database/       data source, migrations, seed
-  common/         shared entities, types, and the HTTP exception filter
+  common/         shared entities, types, the HTTP exception filter and Swagger setup
   config/         environment schema and validation
   health/         health check endpoint
 test/             integration tests and their setup
@@ -206,6 +208,10 @@ where its name says it is.
 
 The card number is never returned in the response.
 
+The same table is generated from the code and served as Swagger UI at
+[`/docs`](http://localhost:3000/docs), so it cannot drift from the handlers. See
+[Interactive API reference](#interactive-api-reference).
+
 ---
 
 ## Local setup and testing
@@ -238,6 +244,20 @@ If port 3000 or 5433 is already used, run
 `--build`, otherwise Docker serves the old image. To stop everything use `docker compose down`, or
 `docker compose down -v` if you also want to delete the database so the next start seeds again from
 zero.
+
+### Interactive API reference
+
+Swagger UI is served at <http://localhost:3000/docs>, and the raw OpenAPI 3 document at
+<http://localhost:3000/docs/json>.
+
+The schemas come from the same DTO classes the `ValidationPipe` enforces, so what the page documents
+is exactly what the API accepts: the length limits, the ISO country code, the 1–50 item range. Every
+response the endpoints can return is listed with its status, including the ones that carry an order
+body rather than an error (`402` and `409`).
+
+**Try it out** works against the running instance. The one thing it will not fill in for you is a
+value for `Idempotency-Key` that changes between attempts — reuse one and you get the first order
+back with `200` instead of placing a new one.
 
 ### Insomnia collection
 

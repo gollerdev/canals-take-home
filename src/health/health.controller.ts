@@ -1,10 +1,12 @@
 import { Controller, Get } from '@nestjs/common';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   HealthCheck,
   HealthCheckService,
   TypeOrmHealthIndicator,
 } from '@nestjs/terminus';
 
+@ApiTags('health')
 @Controller('health')
 export class HealthController {
   constructor(
@@ -15,6 +17,10 @@ export class HealthController {
   /**
    * Reports 200 only when the service can actually reach Postgres.
    */
+  @ApiOperation({
+    summary: 'Service health',
+    description: 'Returns 200 only when the service can reach Postgres.',
+  })
   @Get()
   @HealthCheck()
   check() {
