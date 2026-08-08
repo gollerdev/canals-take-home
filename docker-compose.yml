@@ -43,6 +43,18 @@ services:
         condition: service_healthy
     restart: 'no'
 
+  seed:
+    build:
+      context: .
+      target: runtime
+    init: true
+    command: ['npm', 'run', 'db:seed:prod']
+    environment: *app-env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: 'no'
+
   api:
     build:
       context: .
@@ -54,7 +66,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      migrate:
+      seed:
         condition: service_completed_successfully
     restart: unless-stopped
 

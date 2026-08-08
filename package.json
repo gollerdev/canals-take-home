@@ -4,12 +4,17 @@
   "description": "Order management API: creates orders, selects the closest warehouse that can fill them, and charges the card.",
   "private": true,
   "license": "UNLICENSED",
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "build": "nest build",
     "db:migrate": "typeorm-ts-node-commonjs migration:run -d src/database/data-source.ts",
     "db:migrate:revert": "typeorm-ts-node-commonjs migration:revert -d src/database/data-source.ts",
     "db:migrate:show": "typeorm-ts-node-commonjs migration:show -d src/database/data-source.ts",
     "db:migrate:prod": "typeorm migration:run -d dist/database/data-source.js",
+    "db:seed": "ts-node src/database/seed/run-seed.ts",
+    "db:seed:prod": "node dist/database/seed/run-seed.js",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
